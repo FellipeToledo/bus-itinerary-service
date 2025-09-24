@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Mapa de Itinerários de Ônibus - Rio de Janeiro</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/itinerary-map.css}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Mapa de Itinerários de Ônibus - Rio de Janeiro</h1>
+        <div class="controls">
+            <div class="main-filter">
+                <label for="lineSelector">Selecione as Linhas de Ônibus:</label>
+                <select id="lineSelector" multiple="multiple" style="width: 400px;">
+                    <option value="">Carregando linhas...</option>
+                </select>
+                <button id="loadRoutes" class="btn-primary">Carregar Rotas</button>
+                <button id="clearRoutes" class="btn-secondary">Limpar Mapa</button>
+            </div>
+            <div class="secondary-filters">
+                <div class="filter-group">
+                    <label for="consortiumFilter">Filtrar por Consórcio:</label>
+                    <select id="consortiumFilter">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="directionFilter">Filtrar por Direção:</label>
+                    <select id="directionFilter">
+                        <option value="">Ambas</option>
+                        <option value="0">Ida</option>
+                        <option value="1">Volta</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div id="map"></div>
+        <div class="sidebar">
+            <div class="info-panel">
+                <h3>Informações da Rota</h3>
+                <div id="routeInfo">
+                    <p>Selecione uma linha e clique em "Carregar Rotas" para visualizar</p>
+                </div>
+            </div>
+            <div class="stats-panel">
+                <h3>Estatísticas</h3>
+                <div id="statsInfo">
+                    <p id="linesCount">Linhas carregadas: 0</p>
+                    <p id="routesCount">Rotas exibidas: 0</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p>Carregando rotas...</p>
+</div>
+
+<!-- jQuery DEVE vir primeiro -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!-- Select2 depende do jQuery -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Custom JS -->
+<script th:src="@{/js/itinerary-map.js}"></script>
+</body>
+</html>
