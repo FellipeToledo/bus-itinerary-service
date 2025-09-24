@@ -87,6 +87,53 @@ function populateLineSelector() {
     $('#loadRoutes').prop('disabled', false);
 }
 
+// Carrega a lista de linhas E consórcios disponíveis
+async function loadAvailableLinesAndConsortiums() {
+    try {
+        showLoading(true, 'Carregando dados...');
+
+        // Carregar linhas e consórcios em paralelo
+        const [linesResponse, consortiumsResponse] = await Promise.all([
+            fetch('/api/itineraries/metadata/lines'),
+            fetch('/api/itineraries/metadata/consortiums')
+        ]);
+
+        if (!linesResponse.ok) throw new Error(`Erro HTTP linhas: ${linesResponse.status}`);
+        if (!consortiumsResponse.ok) throw new Error(`Erro HTTP consórcios: ${consortiumsResponse.status}`);
+
+        allLines = await linesResponse.json();
+        const consortiums = await consortiumsResponse.json();
+
+        if (!Array.isArray(allLines)) throw new Error('Resposta inválida para linhas');
+        if (!Array.isArray(consortiums)) throw new Error('Resposta inválida para consórcios');
+
+        populateLineSelector();
+        populateConsortiumFilter(consortiums);
+        updateRouteInfo([], 0);
+
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        alert('Erro ao carregar dados: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Preenche o filtro de consórcio
+function populateConsortiumFilter(consortiums) {
+    const consortiumFilter = document.getElementById('consortiumFilter');
+    consortiumFilter.innerHTML = '<option value="">Todos os consórcios</option>';
+
+    consortiums.forEach(consortium => {
+        if (consortium && consortium.trim() !== '') {
+            const option = document.createElement('option');
+            option.value = consortium;
+            option.textContent = consortium;
+            consortiumFilter.appendChild(option);
+        }
+    });
+}
+
 // Carrega as rotas baseado nas linhas selecionadas
 async function loadRoutes() {
     const selectedLines = $('#lineSelector').val();
@@ -99,9 +146,23 @@ async function loadRoutes() {
     try {
         showLoading(true, 'Carregando rotas...');
 
+        // Obter valores dos filtros
+        const consortiumFilter = document.getElementById('consortiumFilter').value;
+        const directionFilter = document.getElementById('directionFilter').value;
+
         // Construir URL com parâmetros
         const linesParam = selectedLines.join(',');
-        const url = `/api/itineraries/by-lines?lines=${encodeURIComponent(linesParam)}`;
+        let url = `/api/itineraries/by-lines?lines=${encodeURIComponent(linesParam)}`;
+
+        // Adicionar filtros à URL se estiverem preenchidos
+        if (consortiumFilter) {
+            url += `&consortium=${encodeURIComponent(consortiumFilter)}`;
+        }
+        if (directionFilter !== '') {
+            url += `&direction=${encodeURIComponent(directionFilter)}`;
+        }
+
+        console.log('URL da requisição:', url); // Para debug
 
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
@@ -118,24 +179,26 @@ async function loadRoutes() {
 
         // Adicionar novas rotas
         if (data.features.length > 0) {
+            const layers = [];
+
             data.features.forEach(feature => {
                 const routeLine = createRouteLine(feature);
                 if (routeLine) {
                     currentRoutes.addLayer(routeLine);
+                    layers.push(routeLine);
                 }
             });
 
             // Ajustar mapa para mostrar todas as rotas
-            const layers = currentRoutes.getLayers();
             if (layers.length > 0) {
-                const group = L.featureGroup(layers);
-                map.fitBounds(group.getBounds());
+                const routeGroup = L.featureGroup(layers);
+                map.fitBounds(routeGroup.getBounds());
             }
 
             updateRouteInfo(selectedLines, data.features.length);
         } else {
             updateRouteInfo(selectedLines, 0);
-            alert('Nenhuma rota encontrada para as linhas selecionadas.');
+            alert('Nenhuma rota encontrada para os filtros selecionados.');
         }
 
     } catch (error) {
@@ -234,13 +297,9 @@ function showLoading(show, message = 'Carregando...') {
 
 // Filtra as rotas baseado nos filtros secundários
 function applyFilters() {
-    const consortiumFilter = document.getElementById('consortiumFilter').value;
-    const directionFilter = document.getElementById('directionFilter').value;
-
-    // Se houver rotas carregadas, aplicar filtros
-    if (currentRoutes.getLayers().length > 0) {
-        // Por enquanto, vamos recarregar as rotas com os filtros
-        // Em uma versão futura, podemos filtrar client-side
+    // Se há linhas selecionadas, recarregar as rotas com os novos filtros
+    const selectedLines = $('#lineSelector').val();
+    if (selectedLines && selectedLines.length > 0) {
         loadRoutes();
     }
 }
@@ -249,36 +308,23 @@ function applyFilters() {
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar se jQuery está carregado
     if (typeof jQuery === 'undefined') {
-        console.error('jQuery não está carregado. Usando fallback.');
-        // Usar fallback sem jQuery
-        document.getElementById('loadRoutes').addEventListener('click', function() {
-            alert('jQuery não carregado. Recarregue a página.');
-        });
+        console.error('jQuery não está carregado.');
         return;
     }
 
     // Inicializar mapa
     initializeMap();
 
-    // Carregar lista de linhas
-    loadAvailableLines();
+    // Carregar lista de linhas E consórcios
+    loadAvailableLinesAndConsortiums();
 
     // Event listeners
     document.getElementById('loadRoutes').addEventListener('click', loadRoutes);
     document.getElementById('clearRoutes').addEventListener('click', clearMap);
 
-    // Filtros secundários
+    // Filtros secundários - recarregar dados quando mudarem
     document.getElementById('consortiumFilter').addEventListener('change', applyFilters);
     document.getElementById('directionFilter').addEventListener('change', applyFilters);
-
-    // Auto-carregar quando selecionar linhas (opcional)
-    $('#lineSelector').on('change', function() {
-        const selectedLines = $(this).val();
-        if (selectedLines && selectedLines.length > 0) {
-            // Opcional: auto-carregar quando selecionar linhas
-            // loadRoutes();
-        }
-    });
 
     // Desabilitar botões inicialmente
     $('#loadRoutes').prop('disabled', true);

@@ -151,4 +151,37 @@ public class BusItineraryService {
         repository.deleteAll();
         loadInitialData();
     }
+
+    // Método para buscar por linhas com filtros
+    public List<BusItinerary> findByServicosAndFilters(List<String> servicos, String consortium, Integer direction) {
+        Query query = new Query();
+
+        // Critério principal: linhas selecionadas
+        if (servicos != null && !servicos.isEmpty()) {
+            query.addCriteria(Criteria.where("servico").in(servicos));
+        }
+
+        // Filtro por consórcio
+        if (consortium != null && !consortium.trim().isEmpty()) {
+            query.addCriteria(Criteria.where("consorcio").is(consortium));
+        }
+
+        // Filtro por direção
+        if (direction != null) {
+            query.addCriteria(Criteria.where("direcao").is(direction));
+        }
+
+        // Projeção para retornar apenas campos necessários
+        query.fields()
+                .include("servico")
+                .include("destino")
+                .include("consorcio")
+                .include("tipoRota")
+                .include("direcao")
+                .include("extensao")
+                .include("geometry")
+                .exclude("id");
+
+        return mongoTemplate.find(query, BusItinerary.class);
+    }
 }

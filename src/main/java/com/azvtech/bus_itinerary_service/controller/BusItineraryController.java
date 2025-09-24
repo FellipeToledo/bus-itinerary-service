@@ -23,15 +23,18 @@ public class BusItineraryController {
     // ENDPOINT PRINCIPAL: Buscar itinerários por linhas
     @GetMapping("/by-lines")
     public ItineraryGeoJsonResponse getItinerariesByLines(
-            @RequestParam(required = false) List<String> lines) {
+            @RequestParam(required = false) List<String> lines,
+            @RequestParam(required = false) String consortium,
+            @RequestParam(required = false) Integer direction) {
 
-        System.out.println("Buscando itinerários para as linhas: " + lines);
+        System.out.println("Buscando itinerários para as linhas: " + lines +
+                ", consórcio: " + consortium + ", direção: " + direction);
 
         List<BusItinerary> busItineraries;
         if (lines == null || lines.isEmpty()) {
-            busItineraries = List.of(); // Retorna vazio se não especificar linhas
+            busItineraries = List.of();
         } else {
-            busItineraries = service.findByServicos(lines);
+            busItineraries = service.findByServicosAndFilters(lines, consortium, direction);
         }
 
         System.out.println("Encontrados " + busItineraries.size() + " itinerários");
